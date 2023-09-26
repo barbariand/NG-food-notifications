@@ -1,0 +1,152 @@
+/*this css file is injected during compilation time lol. If anyone reads this, hello :)*/
+#form {
+  box-sizing: border-box;
+  width: 80%;
+  height: 100%;
+  background-color: #27272c;
+  color: white;
+  border-style: solid;
+  border-width: 5px;
+  border-image: linear-gradient(35deg,
+      #d367c1 10%,
+      #dedf40 25%,
+      #62cb5c 50%,
+      #00bbcb 75%,
+      #ab79d6 90%) 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4% 10%;
+}
+
+body {
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: black;
+  overflow: hidden;
+  background-image: url(https://foto.wuestenigel.com/wp-content/uploads/api/green-fresh-vegetables-and-mushrooms-on-black-background-the-concept-of-cooking-healthy-food.jpeg);
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+button {
+  font-size: 2.1vw;
+  background-color: #ab79d6;
+  border-radius: 8px;
+  border-style: none;
+  box-sizing: content-box;
+  color: #351d4a;
+  cursor: pointer;
+  display: inline-block;
+  font-family: "Haas Grot Text R Web", "Helvetica Neue", Helvetica, Arial,
+    sans-serif;
+  background-size: 100% 400%;
+  background-image: linear-gradient(to bottom, #ab79d6 25%, #7117bf 25%, #7117bf 50%, #863ec4 50%);
+  /*#7117bf
+  #863ec4
+  */
+  
+  font-weight: 500;
+  height: 40px;
+  width: 80%;
+  line-height: 20px;
+  list-style: none;
+  margin: 0;
+  outline: none;
+  padding: 15%;
+  position: relative;
+  text-align: center;
+  vertical-align: baseline;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  text-decoration: none;
+  transition: none 0.18s ease-in-out;
+  transition-property: background-color, color, border-color, background-position;
+  border: 3px solid #ab79d6;
+  box-shadow: 9px 9px #999;
+  isolation: isolate;
+}
+
+
+.form-inline {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.form-inline .form-group {
+  --modifier: calc(30ch - 100%);
+  flex-basis: calc(var(--modifier) * 999);
+  flex-grow: 1;
+  grid-template-areas: "group";
+}
+
+.input-group {
+  grid-gap: 0.5em;
+  display: grid;
+  width: min(100%, 40ch);
+}
+
+.form-inline .input-group>* {
+  grid-area: group;
+}
+
+.form-inline .input-group {
+  --modifier: calc(30ch - 100%);
+  flex-basis: calc(var(--modifier) * 999);
+  flex-grow: 1;
+  grid-template-areas: "group";
+}
+
+.outer-form {
+  width: 80%;
+  margin: 8vh auto;
+  display: flex;
+  justify-content: center;
+  text-align: center;
+}
+
+label {
+  grid-area: group;
+  align-self: start;
+  background-image: linear-gradient(to top,
+      #1e1c22 0 calc(50% - 2px),
+      #27272c calc(50% - 2px));
+  font-size: 0.9rem;
+  padding-left: 0.5em;
+  padding-right: 0.5em;
+  position: relative;
+  transform: translate(0.5rem, -50%);
+  width: max-content;
+}
+
+input {
+  color: white;
+  width: 100%;
+  font-size: max(16px, 1rem);
+  font-family: inherit;
+  padding: 0.25rem 0.5rem;
+  border: 2px solid white;
+  border-radius: 4px;
+  background-color: #1e1c22;
+}
+
+input:focus {
+  outline: 2px solid #ab79d6;
+}
+
+button:hover {
+  background-position: 0 -50%;
+}
+
+button:active {
+  transition: transform,box-shadow 0.12s ease-in-out;
+  background-position: 0 -100%;
+  box-shadow: 5px 5px #666;
+  transform: translate(4px,4px);
+}
