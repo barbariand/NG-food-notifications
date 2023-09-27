@@ -1,4 +1,3 @@
-#![feature(fn_traits)]
 use async_trait::async_trait;
 use log::info;
 use pretty_env_logger;
