@@ -1,49 +1,51 @@
 #![feature(fn_traits)]
+use async_trait::async_trait;
 use log::info;
 use pretty_env_logger;
+use replitdb::AsyncClient;
 use serde::{Deserialize, Serialize};
-use warp::reply::{Reply, Json};
+use serde_json;
+use warp::filters::fs::File;
 use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
 use tokio;
 use tokio::sync::Mutex;
 use warp;
+use warp::reply::{Json, Reply};
 use warp::Filter;
 use web_push::{self, SubscriptionInfo};
-use replitdb::AsyncClient;
-use async_trait::async_trait;
-use serde_json;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    
     std::env::set_var("RUST_LOG", "info");
     pretty_env_logger::init();
     let log = warp::log("Test");
-    #[cfg(dev="true")]
+    #[cfg(feature = "dev")]
     let cache = Cache(NotificationCache {
         cache: Arc::new(Mutex::new(Vec::new())),
     });
-    #[cfg(not(dev="true"))]
-    let cache=Cache(Arc::new(AsyncClient::new()));
+    #[cfg(not(feature = "dev"))]
+    let cache = Cache(Arc::new(AsyncClient::new()));
     let with_cache = warp::any().map(move || cache.clone());
-    
+
     let notification = warp::path!("service-worker.js").map(|| {
         warp::http::Response::builder()
             .header("Content-Type", "text/javascript")
             .body(include_str!("notifications.js"))
     });
 
-    let js = warp::fs::file("static/index.js");
+    let js =  warp::path!("index.js").and(warp::fs::file("static/index.js")).map(|f:File|f.into_response());
 
-    let register_notification = warp::post()
-        .and(warp::path("save-subscription"))
+    let register_notification = warp::path!("save-subscription")
+        .and(warp::post())
         .and(warp::body::json())
-        .and(with_cache.clone()).then(insert_data)
+        .and(with_cache.clone())
+        .then(insert_data)
         .with(log);
-        
-    let css = warp::fs::file("static/index.css");
+
+    let css =warp::path!("index.css").and(warp::fs::file("static/index.css")).map(|f:File|f.into_response());
     //extracting the cache into private server witch is protected with bcrypt key beause this server wont run allways
     let drain_cache = warp::path!("get-cache")
+        .and(warp::post())
         .and(warp::body::json())
         .and_then(verify_key)
         .and(with_cache.clone())
@@ -71,20 +73,20 @@ struct NotificationCache {
     cache: Arc<Mutex<Vec<web_push::SubscriptionInfo>>>,
 }
 #[async_trait]
-trait DataManagement:Clone{
-    async fn insert(&mut self,notificationinfo:web_push::SubscriptionInfo);
-    async fn get_all(&mut self)->NotificationInfos;
+trait DataManagement: Clone {
+    async fn insert(&mut self, notificationinfo: web_push::SubscriptionInfo);
+    async fn get_all(&mut self) -> NotificationInfos;
 }
 
 #[async_trait]
-impl DataManagement for NotificationCache{
-    async fn insert(&mut self,notificationinfo:web_push::SubscriptionInfo) {
+impl DataManagement for NotificationCache {
+    async fn insert(&mut self, notificationinfo: web_push::SubscriptionInfo) {
         (*self.lock().await).push(notificationinfo);
     }
-    async fn get_all(&mut self)->NotificationInfos{
+    async fn get_all(&mut self) -> NotificationInfos {
         let mut vec = self.lock().await;
-            let res:Vec<SubscriptionInfo>=vec.drain(..).collect();
-            NotificationInfos::from_iter(res)
+        let res: Vec<SubscriptionInfo> = vec.drain(..).collect();
+        NotificationInfos::from_iter(res)
     }
 }
 impl Deref for NotificationCache {
@@ -93,27 +95,24 @@ impl Deref for NotificationCache {
         &self.cache
     }
 }
+#[cfg(not(feature = "dev"))]
 #[async_trait]
-impl DataManagement for Arc<AsyncClient>{
-    async fn insert(&mut self, notificationinfo:web_push::SubscriptionInfo){
-        let mut vec=match self.get("json").await.ok().flatten(){
-            Some(json)=>{
-                serde_json::from_str(&json).expect("Database got corupted oopsie")
-            },
-            None=>Vec::new(),
+impl DataManagement for Arc<AsyncClient> {
+    async fn insert(&mut self, notificationinfo: web_push::SubscriptionInfo) {
+        let mut vec = match self.get("json").await.ok().flatten() {
+            Some(json) => serde_json::from_str(&json).expect("Database got corupted oopsie"),
+            None => Vec::new(),
         };
         vec.push(notificationinfo);
         self.set("json", serde_json::to_string(&vec).unwrap()).await;
     }
-    async fn get_all(&mut self)->NotificationInfos{
-        match self.get("json").await.ok().flatten(){
-            Some(json)=>{
+    async fn get_all(&mut self) -> NotificationInfos {
+        match self.get("json").await.ok().flatten() {
+            Some(json) => {
                 self.delete("json").await;
                 serde_json::from_str(&json).expect("Database got corupted oopsie")
             }
-            None=>{
-                Vec::new()
-            }
+            None => Vec::new(),
         }
     }
 }
@@ -129,23 +128,26 @@ async fn verify_key(key: Key) -> Result<(), warp::Rejection> {
     }
 }
 #[derive(Clone)]
-struct Cache<T:DataManagement+ Clone>(T);
-impl<T:DataManagement> Deref for Cache<T>{
+struct Cache<T: DataManagement + Clone>(T);
+impl<T: DataManagement> Deref for Cache<T> {
     type Target = T;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
-impl<T:DataManagement> DerefMut for Cache<T>{
+impl<T: DataManagement> DerefMut for Cache<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
-async fn insert_data<T:DataManagement>(notificationinfo:SubscriptionInfo,mut cache:Cache<T>)->impl Reply{
+async fn insert_data<T: DataManagement>(
+    notificationinfo: SubscriptionInfo,
+    mut cache: Cache<T>,
+) -> impl Reply {
     cache.insert(notificationinfo).await;
     warp::reply()
 }
-async fn get_all_data<T:DataManagement>(_:(),mut cache:Cache<T>)->Json{
+async fn get_all_data<T: DataManagement>(_: (), mut cache: Cache<T>) -> Json {
     warp::reply::json(&cache.get_all().await)
 }

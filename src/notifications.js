@@ -42,8 +42,9 @@ self.addEventListener('activate', async () => {
 
 self.addEventListener('push', function (event) {
     if (event.data) {
-        console.log('Push event!! ', event.data)
-        showLocalNotification(event.data.title, event.data.options, self.registration)
+        console.log('Push event!! ', event.data.json())
+        let data = event.data.json()
+        showLocalNotification(data.title, data.options, self.registration)
     } else {
         console.log('Push event but no data')
     }
@@ -52,5 +53,48 @@ self.addEventListener('push', function (event) {
 const showLocalNotification = (title, options, swRegistration) => {
     swRegistration.showNotification(title, options)
 }
+self.addEventListener('notificationclick', (event) => {
+    const clickedNotification = event.notification;
+    clickedNotification.close();
+    let url = "https://www.nacka.se/valfard-skola/nacka-gymnasium/skolinfo/matsedel/#:~:text="
+    var weekday = new Array(7);
+    weekday[0] = "";
+    weekday[1] = "M%C3%A5ndag";
+    weekday[2] = "Tisdag";
+    weekday[3] = "Onsdag";
+    weekday[4] = "Torsdag";
+    weekday[5] = "Fredag";
+    weekday[6] = "";
+    
+    let day=new Date().getDay()
+    console.log(day)
+    console.log("day:"+weekday[day])
+    const urlToOpen = new URL(url+weekday[day]).href;
 
+    const promiseChain = clients
+        .matchAll({
+            type: 'window',
+            includeUncontrolled: true,
+        })
+        .then((windowClients) => {
+            let matchingClient = null;
+
+            for (let i = 0; i < windowClients.length; i++) {
+                const windowClient = windowClients[i];
+                if (windowClient.url === urlToOpen) {
+                    matchingClient = windowClient;
+                    break;
+                }
+            }
+
+            if (matchingClient) {
+                return matchingClient.focus();
+            } else {
+                return clients.openWindow(urlToOpen);
+            }
+        });
+
+    event.waitUntil(promiseChain);
+    event.waitUntil(promiseChain);
+});
 

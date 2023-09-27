@@ -28,16 +28,26 @@ function askForNotifications() {
     });
 
 }
+let hastried = false;
 async function subscribeUserToPush() {
-    await navigator.serviceWorker.getRegistrations().then(function (registrations) {
-        for (let registration of registrations) {
-            registration.unregister();
+    let reg = await navigator.serviceWorker.getRegistrations();
+    console.log(reg);
+    if (reg.length > 0) {
+        if (!hastried) {
+            let button = document.getElementById("button");
+            button.innerText = "Redan registrerad, men klicka på du"
+            button.dataset.value = "Redan registrerad, men klicka på du"
+            doFun(button)
+            hastried = true
         }
-    });
-    console.log("registering worker")
-    await navigator.serviceWorker
-        .register('/service-worker.js');
-        console.log("registerd worker")
+    }
+    askForNotifications().then(async () => {
+        await navigator.serviceWorker
+            .register('/service-worker.js');
+    })
+    let button = document.getElementById("button");
+    button.innerText = "du är nu registrerad, men klicka på du"
+    button.dataset.value = "du är nu registrerad, men klicka på du"
 }
 
 // animation code from Hyperplexed
@@ -46,26 +56,29 @@ const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 let interval = null;
 
 document.querySelector("button").onmouseover = event => {
+    doFun(event.target)
+}
+function doFun(target) {
     let iteration = 0;
 
     clearInterval(interval);
 
     interval = setInterval(() => {
-        event.target.innerText = event.target.innerText
+        target.innerText = target.innerText
             .split("")
             .map((letter, index) => {
                 if (index < iteration) {
-                    return event.target.dataset.value[index];
+                    return target.dataset.value[index];
                 }
 
                 return letters[Math.floor(Math.random() * 26)]
             })
             .join("");
 
-        if (iteration >= event.target.dataset.value.length) {
+        if (iteration >= target.dataset.value.length) {
             clearInterval(interval);
         }
 
-        iteration += 1 / 2;
+        iteration += 2 / 3;
     }, 30);
 }
